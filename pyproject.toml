@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "ykenan-log>=0.2.0", "ykenan-file>=0.1.1", "pandas>=1.5.3"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "ykenan_fragments"
+version = "1.0.0"
+authors = [
+    { name = "Yu Zhengmin", email = "3236170161@qq.com" },
+]
+keywords = ["ykenan", "fragments"]
+description = "Forming fragments files through three files (barcodes.txt.gz, .mtx.gz and .peaks.txt)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["ykenan-log>=0.2.0", "ykenan-file>=0.1.1", "pandas>=1.5.3"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+[project.urls]
+github = "https://github.com/YuZhengM/ykenan_fragments"
