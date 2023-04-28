@@ -13,8 +13,6 @@ import ykenan_file as yf
 import gzip
 
 
-# log 日志
-
 class GetFragments:
 
     def __init__(self, base_path: str, cp_path: str, GSE: str):
@@ -144,7 +142,7 @@ class GetFragments:
         mtx_file: dict = {}
         peaks_file: dict = {}
         # pick up information
-        self.log.info(f"得到 {path} 三个文件信息")
+        self.log.info(f"Obtain three file information for {path}")
         for filename in filenames:
             filename: str
             # Determine if it is a compressed package
@@ -154,19 +152,19 @@ class GetFragments:
                         "name": filename,
                         "path": contents_dict[filename]
                     }
-                    self.log.info(f"{self.barcodes_key} 文件: {barcodes_file}")
+                    self.log.info(f"{self.barcodes_key} file: {barcodes_file}")
                 elif filename.count(self.mtx_key) > 0:
                     mtx_file: dict = {
                         "name": filename,
                         "path": contents_dict[filename]
                     }
-                    self.log.info(f"{self.mtx_key} 文件: {mtx_file}")
+                    self.log.info(f"{self.mtx_key} file: {mtx_file}")
                 elif filename.count(self.peaks_key) > 0:
                     peaks_file: dict = {
                         "name": filename,
                         "path": contents_dict[filename]
                     }
-                    self.log.info(f"{self.peaks_key} 文件: {peaks_file}")
+                    self.log.info(f"{self.peaks_key} file: {peaks_file}")
         return {
             self.barcodes_key: barcodes_file,
             self.mtx_key: mtx_file,
@@ -217,11 +215,11 @@ class GetFragments:
         # Obtain file information
         files: dict = self.get_files(path)
         # Get Barcodes
-        self.log.info(f"正在获取 {self.barcodes_key} 文件信息")
+        self.log.info(f"Getting {self.barcodes_key} file information")
         barcodes: list = self.get_file_content(path, files[self.barcodes_key])
-        self.log.info(f"正在获取 {self.mtx_key} 文件路径")
+        self.log.info(f"Getting {self.mtx_key} file path")
         mtx_path: str = self.get_file_content(path, files[self.mtx_key])
-        self.log.info(f"正在获取 {self.peaks_key} 文件信息")
+        self.log.info(f"Getting {self.peaks_key} file information")
         peaks: list = self.get_file_content(path, files[self.peaks_key])
         # length
         barcodes_len: int = len(barcodes)
@@ -247,12 +245,12 @@ class GetFragments:
                         break
                     if mtx_count >= 500000 and mtx_count % 500000 == 0:
                         if mtx_all_number != 0:
-                            self.log.info(f"已处理 {mtx_count} 行, 已完成 {round(mtx_count / mtx_all_number, 4) * 100} %")
+                            self.log.info(f"Processed {mtx_count} lines, completed {round(mtx_count / mtx_all_number, 4) * 100} %")
                         else:
-                            self.log.info(f"已处理 {mtx_count} 行")
+                            self.log.info(f"Processed {mtx_count} lines")
                     if line.startswith("%"):
                         mtx_start += 1
-                        self.log.info(f"注释信息: {line}")
+                        self.log.info(f"Annotation Information: {line}")
                         mtx_count += 1
                         continue
                     split: list = line.split(" ")
