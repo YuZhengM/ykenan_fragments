@@ -12,23 +12,25 @@ from ykenan_log import Logger
 import ykenan_file as yf
 import gzip
 
+from ykenan_fragments.genome_transformation import Hg19ToHg38
+
 
 class GetFragments:
 
-    def __init__(self, base_path: str, cp_path: str, GSE: str):
+    def __init__(self, base_path: str, cp_path: str, gsm: str):
         """
         Form an unordered fragments
         :param base_path: Path to store three files
         :param cp_path: Path to generate unordered fragments files
-        :param GSE: GSE number (here is a folder name)
+        :param gsm: GSE number (here is a folder name)
         """
         self.log = Logger("Three files form fragments file", "log/fragments.log")
         self.file = yf.staticMethod(log_file="log")
         # Folder path containing three files
-        self.GSE: str = GSE
-        self.base_path: str = os.path.join(base_path, GSE)
+        self.GSE: str = gsm
+        self.base_path: str = os.path.join(base_path, gsm)
         # The path to copy the fragments file to
-        self.cp_path: str = os.path.join(cp_path, GSE)
+        self.cp_path: str = os.path.join(cp_path, gsm)
         # keyword
         self.barcodes_key: str = "barcodes"
         self.mtx_key: str = "mtx"
@@ -105,20 +107,20 @@ class GetFragments:
             if len(get_files) < 3:
                 continue
             count: int = 0
-            isAdd: bool = True
+            is_add: bool = True
             for file in get_files:
                 # Determine if there are folders that have already formed fragments
                 if dir_name + self.suffix_fragments == file or dir_name + self.suffix_information == file:
                     self.log.info(f"{dir_name} The fragments file has been generated")
                     self.log.warn(f"Skip generation of {dir_name} type fragments file")
-                    isAdd = False
+                    is_add = False
                     break
                 # Does it contain three
                 for endswith in self.endswith_list:
                     if dir_name + endswith == file:
                         count += 1
                         break
-            if count == 3 and isAdd:
+            if count == 3 and is_add:
                 dirs_key.append(dir_name)
                 dirs_key_dict = dict(itertools.chain(dirs_key_dict.items(), {
                     dir_name: dirs_dict[dir_name]
@@ -344,27 +346,32 @@ class GetFragments:
 
 class GetChrSortFragments:
 
-    def __init__(self, path: str, cp_path: str, GSE: str, get_fragments_path: str, is_exec: bool = True):
+    def __init__(self, path: str, cp_path: str, gsm: str, get_fragments_path: str, lift_over_path: str, is_hg19_to_hg38: bool = True, is_exec: bool = True):
         """
         Form an fragments
         :param path: Path to store unordered fragments files
         :param cp_path: Path to generate fragments files
-        :param GSE: GSE number (here is a folder name)
+        :param gsm: GSE number (here is a folder name)
         :param get_fragments_path: base_path parameter in GetFragments class
+        :param is_hg19_to_hg38: 是否为 hg19 文件
         :param is_exec: Do you want to execute the GetFragments class
         """
         self.log = Logger("Three files form fragments file", "log/fragments.log")
         self.file = yf.staticMethod(log_file="log")
-        self.base_path: str = os.path.join(path, GSE)
+        self.base_path: str = os.path.join(path, gsm)
         self.fragments_path: str = os.path.join(self.base_path, "fragments")
         self.cp_input_path: str = cp_path
+        self.lift_over_path: str = lift_over_path
+        self.is_hg19_to_hg38: bool = is_hg19_to_hg38
+        self.genome_source: str = "hg19" if self.is_hg19_to_hg38 else "hg38"
+        self.genome_generate: str = "hg38" if self.is_hg19_to_hg38 else "hg19"
         self.chr_list: dict = {
             "chr1": 1, "chr2": 2, "chr3": 3, "chr4": 4, "chr5": 5, "chr6": 6, "chr7": 7, "chr8": 8, "chr9": 9, "chr10": 10,
             "chr11": 11, "chr12": 12, "chr13": 13, "chr14": 14, "chr15": 15, "chr16": 16, "chr17": 17, "chr18": 18, "chr19": 19, "chr20": 20,
             "chr21": 21, "chr22": 22, "chrX": 23, "chrY": 24
         }
         if is_exec:
-            GetFragments(get_fragments_path, path, GSE)
+            GetFragments(base_path=get_fragments_path, cp_path=path, gsm=gsm)
         self.exec_sort_fragments()
 
     @staticmethod
@@ -391,9 +398,9 @@ class GetChrSortFragments:
         # Add processing files
         for file in files_dict_name:
             # 排序后的文件
-            ArchR_fragments_file: str = os.path.join(self.cp_input_path, file)
-            if os.path.exists(ArchR_fragments_file):
-                self.log.warn(f"The fragments file {ArchR_fragments_file} sorted by chromatin already exists")
+            archr_fragments_file: str = os.path.join(self.cp_input_path, file)
+            if os.path.exists(archr_fragments_file):
+                self.log.warn(f"The fragments file {archr_fragments_file} sorted by chromatin already exists")
                 continue
             # 添加信息
             need_handler_fragments.append(file)
@@ -413,12 +420,12 @@ class GetChrSortFragments:
         chr_f_dict: dict = {}
         chr_f_path: dict = {}
         # Determine whether to merge directly
-        isMerge: bool = True
+        is_merge: bool = True
         # Create a folder to store chromatin
-        chromosome_path: str = os.path.join(self.fragments_path, f"{file}_chromosome")
+        chromosome_path: str = os.path.join(self.fragments_path, f"{file}_chromosome", self.genome_source)
         if not os.path.exists(chromosome_path):
             self.log.info(f"create folder {chromosome_path}")
-            isMerge = False
+            is_merge = False
             os.makedirs(chromosome_path)
         with open(path, "r", encoding="utf-8") as r:
             while True:
@@ -435,7 +442,7 @@ class GetChrSortFragments:
                 #     log.error(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
                 #     raise ValueError(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
                 chromosome: str = split[0]
-                if not isMerge:
+                if not is_merge:
                     chromosome_path_file: str = self.classification_name(chromosome, chromosome_path, file)
                     # Do not judge os. path. exists in this area, as the speed will decrease by 50 times when the number of cycles exceeds 500000
                     # if chromosome not in chr_f_list and not os.path.exists(chromosome_path_file):
@@ -460,13 +467,14 @@ class GetChrSortFragments:
                         }.items()))
                 fragments_count += 1
         # 关闭文件
-        if not isMerge:
+        if not is_merge:
             for chromosome in chr_f_list:
                 chromosome_file: TextIO = chr_f_dict[chromosome]
                 chromosome_file.close()
         return {
             "name": chr_f_list,
-            "path": chr_f_path
+            "path": chr_f_path,
+            "base_path": os.path.join(self.fragments_path, f"{file}_chromosome")
         }
 
     def sort_position_files(self, chr_file_dict: dict, file: str):
@@ -476,15 +484,15 @@ class GetChrSortFragments:
         # sort
         chr_name.sort(key=lambda elem: self.chr_list[elem])
         # Determine whether to merge directly
-        isMerge: bool = True
+        is_merge: bool = True
         # output file
         position: str = os.path.join(self.fragments_path, f"{file}_position")
         if not os.path.exists(position):
             self.log.info(f"create folder {position}")
-            isMerge = False
+            is_merge = False
             os.makedirs(position)
 
-        if not isMerge:
+        if not is_merge:
             for chr_ in chr_name:
                 self.log.info(f"Start sorting file {file_dict_path[chr_]} Sort")
                 chr_file_content: DataFrame = pd.read_table(file_dict_path[chr_], encoding="utf-8", header=None)
@@ -507,6 +515,37 @@ class GetChrSortFragments:
             "path": position_f_path
         }
 
+    def genome_transformation(self, chr_file_dict: dict, file: str):
+        chr_name: list = chr_file_dict["name"]
+        chr_name.sort(key=lambda elem: self.chr_list[elem])
+        base_path: str = chr_file_dict["base_path"]
+        genome_f_path: dict = {}
+        # Determine whether to merge directly
+        is_merge: bool = True
+        # output file
+        genome_output: str = os.path.join(self.base_path, self.genome_generate)
+        if not os.path.exists(genome_output):
+            self.log.info(f"create folder {genome_output}")
+            is_merge = False
+            os.makedirs(genome_output)
+
+        if not is_merge:
+            # 执行信息
+            Hg19ToHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
+
+        for chr_ in chr_name:
+            genome_file: str = os.path.join(genome_output, f"{file}_{chr_}.tsv")
+            genome_f_path = dict(itertools.chain(genome_f_path.items(), {
+                chr_: genome_file
+            }.items()))
+        return {
+            self.genome_source: chr_file_dict,
+            self.genome_generate: {
+                "name": chr_name,
+                "path": genome_f_path
+            }
+        }
+
     def merge_chr_files(self, chr_file_dict: dict, output_file: str) -> None:
         chr_name: list = chr_file_dict["name"]
         file_dict_path: dict = chr_file_dict["path"]
@@ -525,24 +564,99 @@ class GetChrSortFragments:
                         w.write(f"{line}\n")
                 self.log.info(f"Completed adding {chr_} file")
 
+    def after_two_step(self, file: str, chr_file_dict: dict, fragments_file: str):
+        # 多染色质进行排序
+        self.log.info(f"Start sorting {file} grouped files")
+        position_file_dict: dict = self.sort_position_files(chr_file_dict, file)
+        self.log.info(f"Sorted file information {position_file_dict}")
+        self.log.info(f"Sorting {file} group files completed")
+        # 对位点进行排序
+        self.log.info(f"Start merging {file} grouped files")
+        self.merge_chr_files(position_file_dict, fragments_file)
+        self.log.info(f"Merge {file} group files completed")
+
     def exec_sort_fragments(self) -> None:
         files_dict: dict = self.get_files()
         files_name: list = files_dict["name"]
         files_path: dict = files_dict["path"]
+
+        # 创建文件夹
+        cp_input_path_genome_source = os.path.join(self.cp_input_path, self.genome_source)
+        cp_input_path_genome_generate = os.path.join(self.cp_input_path, self.genome_generate)
+        if not cp_input_path_genome_source:
+            self.log.info(f"创建 {cp_input_path_genome_source} 文件夹")
+            os.makedirs(cp_input_path_genome_source)
+        if not cp_input_path_genome_generate:
+            self.log.info("")
+            self.log.info(f"创建 {cp_input_path_genome_generate} 文件夹")
+
         for file in files_name:
             # output file
-            chr_sort_fragments_file: str = os.path.join(self.cp_input_path, file)
-            if os.path.exists(chr_sort_fragments_file):
-                self.log.warn(f"{chr_sort_fragments_file} The file already exists, it has been processed by default")
-                continue
+            chr_sort_fragments_file_source: str = os.path.join(cp_input_path_genome_source, file)
+            chr_sort_fragments_file_generate: str = os.path.join(cp_input_path_genome_source, file)
+            chr_sort_fragments_file: dict = {
+                self.genome_source: cp_input_path_genome_source,
+                self.genome_generate: chr_sort_fragments_file_generate
+            }
+
+            if self.lift_over_path:
+                if os.path.exists(chr_sort_fragments_file_source) and os.path.exists(chr_sort_fragments_file_generate):
+                    self.log.warn(f"{chr_sort_fragments_file_source} and {chr_sort_fragments_file_generate}. The files already exists, it has been processed by default")
+                    continue
+            else:
+                if os.path.exists(chr_sort_fragments_file_source):
+                    self.log.warn(f"{chr_sort_fragments_file_source}. The file already exists, it has been processed by default")
+                    continue
+
             self.log.info(f"Start to group {file} files according to chromatin information")
             chr_file_dict: dict = self.write_chr_file(files_path[file], file)
             self.log.info(f"File information after grouping {chr_file_dict}")
             self.log.info(f"Complete file grouping of {file} according to chromatin information")
-            self.log.info(f"Start sorting {file} grouped files")
-            position_file_dict: dict = self.sort_position_files(chr_file_dict, file)
-            self.log.info(f"Sorted file information {position_file_dict}")
-            self.log.info(f"Sorting {file} group files completed")
-            self.log.info(f"Start merging {file} grouped files")
-            self.merge_chr_files(position_file_dict, chr_sort_fragments_file)
-            self.log.info(f"Merge {file} group files completed")
+
+            # 判断是否需要进行 liftOver
+            if self.lift_over_path:
+                # 进行转化为 hg19 或 hg38
+                genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file)
+                genome_list: list = list(genome_transformation_dict.keys())
+                for genome in genome_list:
+                    self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file[genome])
+            else:
+                self.after_two_step(file, chr_file_dict, chr_sort_fragments_file_source)
+
+
+class Run:
+
+    def __init__(self, path: str, lift_over_path: str = None, is_hg19_to_hg38: bool = True):
+        self.base_path: str = os.path.join(path, "handler")
+        self.source_path: str = os.path.join(path, "source")
+        self.log = Logger("Run", "log/fragments.log")
+        self.file = yf.staticMethod(log_file="log")
+        self.lift_over_path: str = lift_over_path
+        self.is_hg19_to_hg38: bool = is_hg19_to_hg38
+        self.exec()
+
+    def exec(self):
+        # 尽量保证该路径下只有 GSE 号的文件
+        dirs_dict: dict = self.file.entry_dirs_dict(self.base_path)
+        dirs_name: list = dirs_dict["name"]
+
+        if not os.path.exists(self.source_path):
+            self.log.error(f"输入文件夹 {self.source_path} 不存在")
+
+        # 执行
+        for gsm in dirs_name:
+
+            archr_path = os.path.join(self.base_path, gsm, "ArchR")
+            if not os.path.exists(archr_path):
+                self.log.info(f"创建 {archr_path} 文件夹")
+                os.makedirs(archr_path)
+
+            self.log.info(f"开始执行 {gsm} 内容信息")
+            GetChrSortFragments(
+                path=self.base_path,
+                cp_path=archr_path,
+                gsm=gsm,
+                get_fragments_path=self.source_path,
+                lift_over_path=self.lift_over_path,
+                is_hg19_to_hg38=self.is_hg19_to_hg38
+            )
