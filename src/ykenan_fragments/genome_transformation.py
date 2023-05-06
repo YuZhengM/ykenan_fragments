@@ -50,6 +50,19 @@ class Hg19ToHg38:
         return info_list
 
     def run(self):
+
+        if not os.path.exists(self.source):
+            self.log.error(f"输入文件夹 {self.source} 不存在")
+            raise ValueError(f"输入文件夹 {self.source} 不存在")
+
+        if not os.path.exists(self.output):
+            self.log.info(f"创建 {self.output} 文件夹")
+            os.makedirs(self.output)
+        if not os.path.exists(self.unmap):
+            self.log.info(f"创建 {self.unmap} 文件夹")
+            os.makedirs(self.unmap)
+
+        # 获取没有执行的文件
         input_files = self.file.get_files(path=self.source)
         code_list = []
         finish_files = self.file.get_files(path=self.output)

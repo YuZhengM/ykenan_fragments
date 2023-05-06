@@ -425,8 +425,8 @@ class GetChrSortFragments:
         chromosome_path: str = os.path.join(self.fragments_path, f"{file}_chromosome", self.genome_source)
         if not os.path.exists(chromosome_path):
             self.log.info(f"create folder {chromosome_path}")
-            is_merge = False
             os.makedirs(chromosome_path)
+            is_merge = False
         with open(path, "r", encoding="utf-8") as r:
             while True:
                 line: str = r.readline().strip()
@@ -477,6 +477,37 @@ class GetChrSortFragments:
             "base_path": os.path.join(self.fragments_path, f"{file}_chromosome")
         }
 
+    def genome_transformation(self, chr_file_dict: dict, file: str):
+        chr_name: list = chr_file_dict["name"]
+        chr_name.sort(key=lambda elem: self.chr_list[elem])
+        base_path: str = chr_file_dict["base_path"]
+        genome_f_path: dict = {}
+        # Determine whether to merge directly
+        is_merge: bool = True
+        # output file
+        genome_output: str = os.path.join(base_path, self.genome_generate)
+        if not os.path.exists(genome_output):
+            self.log.info(f"create folder {genome_output}")
+            is_merge = False
+            os.makedirs(genome_output)
+
+        if not is_merge:
+            # 执行信息
+            Hg19ToHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
+
+        for chr_ in chr_name:
+            genome_file: str = os.path.join(genome_output, f"{file}_{chr_}.tsv")
+            genome_f_path = dict(itertools.chain(genome_f_path.items(), {
+                chr_: genome_file
+            }.items()))
+        return {
+            self.genome_source: chr_file_dict,
+            self.genome_generate: {
+                "name": chr_name,
+                "path": genome_f_path
+            }
+        }
+
     def sort_position_files(self, chr_file_dict: dict, file: str):
         chr_name: list = chr_file_dict["name"]
         file_dict_path: dict = chr_file_dict["path"]
@@ -486,7 +517,7 @@ class GetChrSortFragments:
         # Determine whether to merge directly
         is_merge: bool = True
         # output file
-        position: str = os.path.join(self.fragments_path, f"{file}_position")
+        position: str = os.path.join(self.fragments_path, f"{file}_position", self.genome_source)
         if not os.path.exists(position):
             self.log.info(f"create folder {position}")
             is_merge = False
@@ -515,37 +546,6 @@ class GetChrSortFragments:
             "path": position_f_path
         }
 
-    def genome_transformation(self, chr_file_dict: dict, file: str):
-        chr_name: list = chr_file_dict["name"]
-        chr_name.sort(key=lambda elem: self.chr_list[elem])
-        base_path: str = chr_file_dict["base_path"]
-        genome_f_path: dict = {}
-        # Determine whether to merge directly
-        is_merge: bool = True
-        # output file
-        genome_output: str = os.path.join(self.base_path, self.genome_generate)
-        if not os.path.exists(genome_output):
-            self.log.info(f"create folder {genome_output}")
-            is_merge = False
-            os.makedirs(genome_output)
-
-        if not is_merge:
-            # 执行信息
-            Hg19ToHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
-
-        for chr_ in chr_name:
-            genome_file: str = os.path.join(genome_output, f"{file}_{chr_}.tsv")
-            genome_f_path = dict(itertools.chain(genome_f_path.items(), {
-                chr_: genome_file
-            }.items()))
-        return {
-            self.genome_source: chr_file_dict,
-            self.genome_generate: {
-                "name": chr_name,
-                "path": genome_f_path
-            }
-        }
-
     def merge_chr_files(self, chr_file_dict: dict, output_file: str) -> None:
         chr_name: list = chr_file_dict["name"]
         file_dict_path: dict = chr_file_dict["path"]
@@ -565,12 +565,12 @@ class GetChrSortFragments:
                 self.log.info(f"Completed adding {chr_} file")
 
     def after_two_step(self, file: str, chr_file_dict: dict, fragments_file: str):
-        # 多染色质进行排序
+        # 对位点进行排序
         self.log.info(f"Start sorting {file} grouped files")
         position_file_dict: dict = self.sort_position_files(chr_file_dict, file)
         self.log.info(f"Sorted file information {position_file_dict}")
         self.log.info(f"Sorting {file} group files completed")
-        # 对位点进行排序
+        # 合并文件
         self.log.info(f"Start merging {file} grouped files")
         self.merge_chr_files(position_file_dict, fragments_file)
         self.log.info(f"Merge {file} group files completed")
