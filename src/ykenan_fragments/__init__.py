@@ -210,11 +210,14 @@ class GetFragments:
     def information_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_information}"
 
-    def write_fragments(self, path: str, key: str) -> None:
+    def write_fragments(self, param: str) -> None:
         """
         Form fragments file
         :return:
         """
+        path: str = param[0]
+        key: str = param[1]
+        self.log.info(f"Process {key} related files (folders)")
         # Obtain file information
         files: dict = self.get_files(path)
         # Get Barcodes
