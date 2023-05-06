@@ -223,6 +223,17 @@ class GetFragments:
         mtx_path: str = self.get_file_content(path, files[self.mtx_key])
         self.log.info(f"Getting {self.peaks_key} file information")
         peaks: list = self.get_file_content(path, files[self.peaks_key])
+        # 形成字典
+        barcodes_dict: dict = {}
+        barcodes_i: int = 0
+        for barcode_elem in barcodes:
+            barcodes_dict.update({barcodes_i: barcode_elem})
+            barcodes_i += 1
+        peaks_dict: dict = {}
+        peaks_i: int = 0
+        for peak_elem in peaks:
+            peaks_dict.update({peaks_i: peak_elem})
+            peaks_i += 1
         # length
         barcodes_len: int = len(barcodes)
         peaks_len: int = len(peaks)
@@ -276,8 +287,8 @@ class GetFragments:
                         mtx_count += 1
                         continue
                     # peak, barcode, There is a header+1, but the index starts from 0 and the record starts from 1
-                    peak: str = peaks[int(split[0])]
-                    barcode: str = barcodes[int(split[1])]
+                    peak: str = peaks_dict[int(split[0])]
+                    barcode: str = barcodes_dict[int(split[1])]
                     peak_split = peak.split("_")
                     barcode_split = barcode.split("\t")
                     # Adding information, it was found that some files in mtx contain two columns, less than three columns. This line was ignored and recorded in the log
