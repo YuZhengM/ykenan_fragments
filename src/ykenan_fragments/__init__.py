@@ -11,7 +11,6 @@ from pandas import DataFrame
 from ykenan_log import Logger
 import ykenan_file as yf
 import gzip
-import threading
 from multiprocessing.dummy import Pool
 
 from ykenan_fragments.genome_transformation import Hg19ToHg38
@@ -41,13 +40,6 @@ class GetFragments:
         self.endswith_list: list = [".cell_barcodes.txt.gz", ".mtx.gz", ".peaks.txt.gz"]
         self.suffix_fragments: str = ".tsv"
         self.suffix_information: str = ".txt"
-        # 写入文件中的信息
-        # Judge comment information
-        self.mtx_start: int = 0
-        # Read quantity
-        self.mtx_count: int = 0
-        self.error_count: int = 0
-        self.mtx_all_number: int = 0
         # start processing
         self.exec_fragments()
 
@@ -218,48 +210,11 @@ class GetFragments:
     def information_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_information}"
 
-    def write_fragments_file(self, write: TextIO, line: str, peaks_len: int, barcodes_len: int, peaks_dict: dict, barcodes_dict: dict) -> None:
-        if self.mtx_count >= 500000 and self.mtx_count % 500000 == 0:
-            if self.mtx_all_number != 0:
-                self.log.info(f"Processed {self.mtx_count} lines, completed {round(self.mtx_count / self.mtx_all_number, 4) * 100} %")
-            else:
-                self.log.info(f"Processed {self.mtx_count} lines")
-        split: list = line.split(" ")
-        # To determine the removal of a length of not 3
-        if len(split) != 3:
-            self.mtx_count += 1
-            self.error_count += 1
-            self.log.error(f"mtx information ===> content: {split}, line number: {self.mtx_count}")
-            return
-        if int(split[0]) > peaks_len or int(split[1]) > barcodes_len:
-            self.mtx_count += 1
-            self.error_count += 1
-            return
-        # peak, barcode, There is a header+1, but the index starts from 0 and the record starts from 1
-        peak: str = peaks_dict[int(split[0])]
-        barcode: str = barcodes_dict[int(split[1])]
-        peak_split = peak.split("_")
-        barcode_split = barcode.split("\t")
-        # Adding information, it was found that some files in mtx contain two columns, less than three columns. This line was ignored and recorded in the log
-        try:
-            write.write(f"{peak_split[0]}\t{peak_split[1]}\t{peak_split[2]}\t{barcode_split[6]}\t{split[2]}\n")
-        except Exception as e:
-            self.error_count += 1
-            self.log.error(f"peak information: {peak_split}")
-            self.log.error(f"barcodes file information: {barcode}")
-            self.log.error(f"barcodes information: {barcode_split}")
-            self.log.error(f"mtx information ===> content: {split}, line number: {self.mtx_count}")
-            self.log.error(f"Write error: {e}")
-        self.mtx_count += 1
-
-    def write_fragments(self, param: tuple) -> None:
+    def write_fragments(self, path: str, key: str) -> None:
         """
         Form fragments file
         :return:
         """
-        path: str = param[0]
-        key: str = param[1]
-        self.log.info(f"Process {key} related files (folders)")
         # Obtain file information
         files: dict = self.get_files(path)
         # Get Barcodes
@@ -269,17 +224,6 @@ class GetFragments:
         mtx_path: str = self.get_file_content(path, files[self.mtx_key])
         self.log.info(f"Getting {self.peaks_key} file information")
         peaks: list = self.get_file_content(path, files[self.peaks_key])
-        # 形成字典
-        barcodes_dict: dict = {}
-        barcodes_i: int = 0
-        for barcode_elem in barcodes:
-            barcodes_dict.update({barcodes_i: barcode_elem})
-            barcodes_i += 1
-        peaks_dict: dict = {}
-        peaks_i: int = 0
-        for peak_elem in peaks:
-            peaks_dict.update({peaks_i: peak_elem})
-            peaks_i += 1
         # length
         barcodes_len: int = len(barcodes)
         peaks_len: int = len(peaks)
@@ -287,7 +231,10 @@ class GetFragments:
             self.log.error(f"Insufficient file read length {self.barcodes_key}: {barcodes_len}, {self.peaks_key}: {peaks_len}")
             raise ValueError("Insufficient file read length")
         self.log.info(f"Quantity or Path {self.barcodes_key}: {barcodes_len}, {self.mtx_key}: {mtx_path}, {self.peaks_key}: {peaks_len}")
-
+        # Read quantity
+        mtx_count: int = 0
+        error_count: int = 0
+        mtx_all_number: int = 0
         # create a file
         fragments_file: str = os.path.join(path, self.fragments_file_name(key))
         self.log.info(f"Starting to form {mtx_path} fragments file")
@@ -300,17 +247,42 @@ class GetFragments:
                 split: list = line.split(" ")
                 if len(split) == 3 and line:
                     self.log.info(f"Remove Statistical Rows: {line}")
-                    self.mtx_all_number = int(split[2])
+                    mtx_all_number = int(split[2])
                     if int(split[0]) + 1 != peaks_len and int(split[1]) + 1 != barcodes_len:
                         raise ValueError(f"File mismatch {self.peaks_key}: {int(split[0])} {peaks_len}, {self.barcodes_key}: {int(split[1])} {barcodes_len}")
                 while True:
                     line: str = r.readline().strip()
                     if not line:
                         break
-                    # 此处用多线程作用不大
-                    threading.Thread(target=self.write_fragments_file, args=(w, line, peaks_len, barcodes_len, peaks_dict, barcodes_dict)).start()
-
-        self.log.info(f"The number of rows ignored is {self.error_count}, {round(self.error_count / self.mtx_all_number, 4) * 100} % of total")
+                    if mtx_count >= 500000 and mtx_count % 500000 == 0:
+                        self.log.info(f"Processed {mtx_count} lines, completed {round(mtx_count / mtx_all_number, 4) * 100} %")
+                    split: list = line.split(" ")
+                    # To determine the removal of a length of not 3
+                    if len(split) != 3:
+                        mtx_count += 1
+                        error_count += 1
+                        self.log.error(f"mtx information ===> content: {split}, line number: {mtx_count}")
+                        continue
+                    if int(split[0]) > peaks_len or int(split[1]) > barcodes_len:
+                        mtx_count += 1
+                        continue
+                    # peak, barcode, There is a header+1, but the index starts from 0 and the record starts from 1
+                    peak: str = peaks[int(split[0])]
+                    barcode: str = barcodes[int(split[1])]
+                    peak_split = peak.split("_")
+                    barcode_split = barcode.split("\t")
+                    # Adding information, it was found that some files in mtx contain two columns, less than three columns. This line was ignored and recorded in the log
+                    try:
+                        w.write(f"{peak_split[0]}\t{peak_split[1]}\t{peak_split[2]}\t{barcode_split[6]}\t{split[2]}\n")
+                    except Exception as e:
+                        error_count += 1
+                        self.log.error(f"peak information: {peak_split}")
+                        self.log.error(f"barcodes file information: {barcode}")
+                        self.log.error(f"barcodes information: {barcode_split}")
+                        self.log.error(f"mtx information ===> content: {split}, line number: {mtx_count}")
+                        self.log.error(f"Write error: {e}")
+                    mtx_count += 1
+        self.log.info(f"The number of rows ignored is {error_count}, {round(error_count / mtx_all_number, 4) * 100} % of total")
         self.log.info(f"Complete the formation of {mtx_path} fragments file")
         self.log.info(f"Complete processing of {key} related files (folders)")
 
