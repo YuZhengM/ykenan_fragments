@@ -316,6 +316,8 @@ class GetFragments:
         fragments_gz_file = os.path.join(fragments_cp_dir, f"{fragments_file_name}.gz")
         if os.path.exists(fragments_gz_file):
             self.log.warn(f"The file has been compressed into {fragments_gz_file}, Default copy completed")
+        elif os.path.exists(os.path.join(fragments_cp_dir, fragments_file_name)):
+            self.log.warn(f"The file has been copy into {fragments_gz_file}, Default copy completed")
         else:
             self.copy_file(fragments_file, os.path.join(fragments_cp_dir, fragments_file_name))
         self.log.info(f"Copy file to specified path for {key} completed")
