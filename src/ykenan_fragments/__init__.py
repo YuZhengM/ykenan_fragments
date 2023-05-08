@@ -4,6 +4,7 @@
 import itertools
 import os
 import shutil
+from multiprocessing.pool import ThreadPool
 from typing import TextIO
 
 import pandas as pd
@@ -210,7 +211,7 @@ class GetFragments:
     def information_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_information}"
 
-    def write_fragments(self, param: str) -> None:
+    def write_fragments(self, param: list) -> None:
         """
         Form fragments file
         :return:
@@ -330,14 +331,15 @@ class GetFragments:
         no_finish_paths = no_finish_infor["path"]
         self.log.info(f"Related file information {no_finish_keys}, {no_finish_paths}")
         # 参数信息
-        write_fragments_param_list = []
+        write_fragments_param_list: list = []
         for key in no_finish_keys:
             write_fragments_param_list.append((no_finish_paths[key], key))
         # 实例化线程对象
-        pool = Pool(10)
+        pool: ThreadPool = Pool(10)
         # Form fragments file
         pool.map(self.write_fragments, write_fragments_param_list)
         pool.close()
+        pool.join()
 
         # All information
         all_infor = source_files["all"]
@@ -348,10 +350,11 @@ class GetFragments:
         for key in all_infor_keys:
             cp_files_param_list.append((all_infor_paths[key], key))
         # 实例化线程对象
-        pool = Pool(10)
+        pool: ThreadPool = Pool(10)
         # copy file
         pool.map(self.cp_files, cp_files_param_list)
         pool.close()
+        pool.join()
 
 
 class GetChrSortFragments:
@@ -555,10 +558,11 @@ class GetChrSortFragments:
                 }.items()))
                 sort_position_files_core_param_list.append((position, file_dict_path, chr_, file))
             # 实例化线程对象
-            pool = Pool(10)
+            pool: ThreadPool = Pool(10)
             # Form fragments file
             pool.map(self.sort_position_files_core, sort_position_files_core_param_list)
             pool.close()
+            pool.join()
         else:
             for chr_ in chr_name:
                 position_file: str = os.path.join(position, f"{file}_{chr_}.tsv")
@@ -659,10 +663,11 @@ class GetChrSortFragments:
             param_list.append((files_path, file, chr_sort_fragments_file, chr_sort_fragments_file_source))
 
         # 实例化线程对象
-        pool = Pool(10)
+        pool: ThreadPool = Pool(10)
         # Form fragments file
         pool.map(self.chr_sort_fragments_file_core, param_list)
         pool.close()
+        pool.join()
 
 
 class Run:

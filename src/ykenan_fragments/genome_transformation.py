@@ -3,6 +3,8 @@
 
 import os.path
 from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool
+
 import ykenan_file as yf
 from ykenan_log import Logger
 
@@ -71,8 +73,9 @@ class Hg19ToHg38:
                 code_list.append(self.exec_str(input_file))
 
         # 实例化线程对象
-        pool = Pool(10)
+        pool: ThreadPool = Pool(10)
         # 将 list 的每一个元素传递给 pool_page(page) 处理
         pool.map(self.exec_command, code_list)
         # 关闭线程
         pool.close()
+        pool.join()
