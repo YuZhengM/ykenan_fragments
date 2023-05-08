@@ -599,6 +599,28 @@ class GetChrSortFragments:
         self.merge_chr_files(position_file_dict, fragments_file)
         self.log.info(f"Merge {file} group files completed")
 
+    def chr_sort_fragments_file_core(self, param_list: list):
+        # 参数信息
+        files_path: dict = param_list[0]
+        file: str = param_list[1]
+        chr_sort_fragments_file: dict = param_list[2]
+        chr_sort_fragments_file_source: str = param_list[3]
+
+        self.log.info(f"Start to group {file} files according to chromatin information")
+        chr_file_dict: dict = self.write_chr_file(files_path[file], file)
+        self.log.info(f"File information after grouping {chr_file_dict}")
+        self.log.info(f"Complete file grouping of {file} according to chromatin information")
+
+        # 判断是否需要进行 liftOver
+        if self.lift_over_path:
+            # 进行转化为 hg19 或 hg38
+            genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file)
+            genome_list: list = list(genome_transformation_dict.keys())
+            for genome in genome_list:
+                self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file[genome])
+        else:
+            self.after_two_step(file, chr_file_dict, chr_sort_fragments_file_source)
+
     def exec_sort_fragments(self) -> None:
         files_dict: dict = self.get_files()
         files_name: list = files_dict["name"]
@@ -614,6 +636,7 @@ class GetChrSortFragments:
             self.log.info("")
             self.log.info(f"创建 {cp_input_path_genome_generate} 文件夹")
 
+        param_list: list = []
         for file in files_name:
             # output file
             chr_sort_fragments_file_source: str = os.path.join(cp_input_path_genome_source, file)
@@ -632,20 +655,14 @@ class GetChrSortFragments:
                     self.log.warn(f"{chr_sort_fragments_file_source}. The file already exists, it has been processed by default")
                     continue
 
-            self.log.info(f"Start to group {file} files according to chromatin information")
-            chr_file_dict: dict = self.write_chr_file(files_path[file], file)
-            self.log.info(f"File information after grouping {chr_file_dict}")
-            self.log.info(f"Complete file grouping of {file} according to chromatin information")
+            # 添加参数
+            param_list.append((files_path, file, chr_sort_fragments_file, chr_sort_fragments_file_source))
 
-            # 判断是否需要进行 liftOver
-            if self.lift_over_path:
-                # 进行转化为 hg19 或 hg38
-                genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file)
-                genome_list: list = list(genome_transformation_dict.keys())
-                for genome in genome_list:
-                    self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file[genome])
-            else:
-                self.after_two_step(file, chr_file_dict, chr_sort_fragments_file_source)
+        # 实例化线程对象
+        pool = Pool(10)
+        # Form fragments file
+        pool.map(self.chr_sort_fragments_file_core, param_list)
+        pool.close()
 
 
 class Run:
