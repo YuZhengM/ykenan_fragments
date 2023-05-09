@@ -78,4 +78,3 @@ class Hg19ToHg38:
         pool.map(self.exec_command, code_list)
         # 关闭线程
         pool.close()
-        pool.join()

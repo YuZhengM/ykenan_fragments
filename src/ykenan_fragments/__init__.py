@@ -339,7 +339,6 @@ class GetFragments:
         # Form fragments file
         pool.map(self.write_fragments, write_fragments_param_list)
         pool.close()
-        pool.join()
 
         # All information
         all_infor = source_files["all"]
@@ -354,7 +353,6 @@ class GetFragments:
         # copy file
         pool.map(self.cp_files, cp_files_param_list)
         pool.close()
-        pool.join()
 
 
 class GetChrSortFragments:
@@ -440,22 +438,22 @@ class GetChrSortFragments:
             self.log.info(f"create folder {chromosome_path}")
             os.makedirs(chromosome_path)
             is_merge = False
-        with open(path, "r", encoding="utf-8") as r:
-            while True:
-                line: str = r.readline().strip()
-                if not line:
-                    break
-                if fragments_count >= 500000 and fragments_count % 500000 == 0:
-                    self.log.info(f"processed {fragments_count} 行")
-                split: list = line.split("\t")
-                # To determine if an error stop occurs when the length is not 5
-                # if len(split) != 5:
-                #     fragments_count += 1
-                #     error_count += 1
-                #     log.error(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
-                #     raise ValueError(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
-                chromosome: str = split[0]
-                if not is_merge:
+        if not is_merge:
+            with open(path, "r", encoding="utf-8") as r:
+                while True:
+                    line: str = r.readline().strip()
+                    if not line:
+                        break
+                    if fragments_count >= 500000 and fragments_count % 500000 == 0:
+                        self.log.info(f"processed {fragments_count} 行")
+                    split: list = line.split("\t")
+                    # To determine if an error stop occurs when the length is not 5
+                    # if len(split) != 5:
+                    #     fragments_count += 1
+                    #     error_count += 1
+                    #     log.error(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
+                    #     raise ValueError(f"fragments file error line ===> content: {split}, line number: {fragments_count}")
+                    chromosome: str = split[0]
                     chromosome_path_file: str = self.classification_name(chromosome, chromosome_path, file)
                     # Do not judge os. path. exists in this area, as the speed will decrease by 50 times when the number of cycles exceeds 500000
                     # if chromosome not in chr_f_list and not os.path.exists(chromosome_path_file):
@@ -471,19 +469,21 @@ class GetChrSortFragments:
                     # Obtaining files with added content
                     chromosome_file: TextIO = chr_f_dict[chromosome]
                     chromosome_file.write(f"{line}\n")
-                else:
-                    chromosome_path_file: str = self.classification_name(chromosome, chromosome_path, file)
-                    if chromosome not in chr_f_list:
-                        chr_f_list.append(chromosome)
-                        chr_f_path = dict(itertools.chain(chr_f_path.items(), {
-                            chromosome: chromosome_path_file
-                        }.items()))
-                fragments_count += 1
-        # 关闭文件
-        if not is_merge:
+                    fragments_count += 1
+            # 关闭文件
             for chromosome in chr_f_list:
                 chromosome_file: TextIO = chr_f_dict[chromosome]
                 chromosome_file.close()
+        else:
+            chromosome_file_dict: dict = self.file.entry_files_dict(chromosome_path)
+            chromosome_file_name: list = chromosome_file_dict["name"]
+            for filename in chromosome_file_name:
+                filename: str
+                chromosome: str = filename.split("_")[-1].split(".")[0]
+                chr_f_list.append(chromosome)
+                chr_f_path = dict(itertools.chain(chr_f_path.items(), {
+                    chromosome: chromosome_file_dict[filename]
+                }.items()))
         return {
             "name": chr_f_list,
             "path": chr_f_path,
@@ -523,9 +523,9 @@ class GetChrSortFragments:
 
     def sort_position_files_core(self, param: tuple):
         position: str = param[0]
-        file_dict_path: dict = param[0]
-        chr_: str = param[0]
-        file: str = param[0]
+        file_dict_path: dict = param[1]
+        chr_: str = param[2]
+        file: str = param[3]
         self.log.info(f"Start sorting file {file_dict_path[chr_]} Sort")
         chr_file_content: DataFrame = pd.read_table(file_dict_path[chr_], encoding="utf-8", header=None)
         # 进行排序
@@ -562,7 +562,6 @@ class GetChrSortFragments:
             # Form fragments file
             pool.map(self.sort_position_files_core, sort_position_files_core_param_list)
             pool.close()
-            pool.join()
         else:
             for chr_ in chr_name:
                 position_file: str = os.path.join(position, f"{file}_{chr_}.tsv")
@@ -667,7 +666,6 @@ class GetChrSortFragments:
         # Form fragments file
         pool.map(self.chr_sort_fragments_file_core, param_list)
         pool.close()
-        pool.join()
 
 
 class Run:
