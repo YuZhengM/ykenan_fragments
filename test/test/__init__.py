@@ -27,7 +27,7 @@ class Fragments(GetSortFragments):
         peak: str = dict_[int(index_)]
         peak_split = peak.split(" ")
         index = int(re.sub("\"", "", peak_split[0]))
-        if index != index_:
+        if index != int(index_):
             self.log.error(f"位置不对.... {peak} {index_} ===> {index}")
             raise ValueError(f"位置不对.... {peak} {index_} ===> {index}")
         peak_info: str = re.sub("\"", "", peak_split[1])
