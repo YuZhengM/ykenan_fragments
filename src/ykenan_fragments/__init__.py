@@ -38,7 +38,7 @@ class Run:
                 os.makedirs(archr_path)
 
             self.log.info(f"开始执行 {gsm} 内容信息")
-            self.callback(
+            fragment = self.callback(
                 path=self.base_path,
                 merge_path=archr_path,
                 gsm=gsm,
@@ -46,3 +46,5 @@ class Run:
                 lift_over_path=self.lift_over_path,
                 is_hg19_to_hg38=self.is_hg19_to_hg38
             )
+            fragment.exec_fragments()
+            fragment.exec_sort_fragments()

@@ -40,7 +40,7 @@ class GetSortFragments(GetFragments):
             "chr11": 11, "chr12": 12, "chr13": 13, "chr14": 14, "chr15": 15, "chr16": 16, "chr17": 17, "chr18": 18, "chr19": 19, "chr20": 20,
             "chr21": 21, "chr22": 22, "chrX": 23, "chrY": 24
         }
-        self.exec_sort_fragments()
+        # self.exec_sort_fragments()
 
     @staticmethod
     def classification_name(chromosome: str, path: str, name: str):

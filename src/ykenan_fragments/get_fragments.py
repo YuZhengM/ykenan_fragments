@@ -35,9 +35,8 @@ class GetFragments:
         # Extract files and remove suffix information
         self.endswith_list: list = [".cell_barcodes.txt.gz", ".mtx.gz", ".peaks.txt.gz"]
         self.suffix_fragments: str = ".tsv"
-        self.suffix_information: str = ".txt"
         # start processing
-        self.exec_fragments()
+        # self.exec_fragments()
 
     def handler_source_files(self) -> dict:
         # Obtain gz file information
@@ -103,7 +102,7 @@ class GetFragments:
             is_add: bool = True
             for file in get_files:
                 # Determine if there are folders that have already formed fragments
-                if dir_name + self.suffix_fragments == file or dir_name + self.suffix_information == file:
+                if dir_name + self.suffix_fragments == file:
                     self.log.info(f"{dir_name} The fragments file has been generated")
                     self.log.warn(f"Skip generation of {dir_name} type fragments file")
                     is_add = False
@@ -196,9 +195,6 @@ class GetFragments:
 
     def fragments_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_fragments}"
-
-    def information_file_name(self, key: str) -> str:
-        return f"{key}{self.suffix_information}"
 
     @staticmethod
     def judge_mtx_is_true(one_len: str, two_len: str, peaks_len: int, barcodes_len: int) -> bool:
