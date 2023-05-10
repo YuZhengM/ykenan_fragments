@@ -45,4 +45,4 @@ if __name__ == '__main__':
     """
     https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE181251
     """
-    Run(path="F:/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", callback=Fragments)
+    Run(path="F:/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", finish_gse=["GSE129785"], callback=Fragments)
