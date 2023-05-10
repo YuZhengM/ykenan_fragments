@@ -17,7 +17,7 @@ pip install ykenan_fragments
 > import
 
 ```shell
-import ykenan_file as yfg
+from ykenan_fragments import Run
 ```
 
 

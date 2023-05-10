@@ -9,18 +9,19 @@ import ykenan_file as yf
 from ykenan_log import Logger
 
 
-class Hg19ToHg38:
+class Hg19AndHg38:
     """
     该步骤需要去子系统中进入该路径执行进行执行
     """
 
-    def __init__(self, path: str, lift_over_path: str, is_hg19_to_hg38: bool):
+    def __init__(self, path: str, lift_over_path: str, is_hg19_to_hg38: bool, thread_count: int = 10):
         # log 日志信息
         self.log = Logger("liftOver", "log")
         # 处理路径和文件的方法
-        self.file = yf.staticMethod(log_file="log")
+        self.file = yf.StaticMethod(log_file="log")
         self.read = yf.Read(header=None, log_file="log")
         self.create = yf.Create(header=False, log_file="log")
+        self.thread_count = thread_count
         self.lift_over_path = lift_over_path
         self.is_hg19_to_hg38 = is_hg19_to_hg38
         self.transformation_file: str = "hg19ToHg38.over.chain.gz" if self.is_hg19_to_hg38 else "hg38ToHg19.over.chain.gz"
@@ -73,7 +74,7 @@ class Hg19ToHg38:
                 code_list.append(self.exec_str(input_file))
 
         # 实例化线程对象
-        pool: ThreadPool = Pool(10)
+        pool: ThreadPool = Pool(self.thread_count)
         # 将 list 的每一个元素传递给 pool_page(page) 处理
         pool.map(self.exec_command, code_list)
         # 关闭线程
