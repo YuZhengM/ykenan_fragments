@@ -412,7 +412,7 @@ class GetChrSortFragments:
 
             # 创建文件夹
             merge_input_path_genome = os.path.join(self.merge_input_path, genome)
-            if not merge_input_path_genome:
+            if not os.path.exists(merge_input_path_genome):
                 self.log.info(f"创建 {merge_input_path_genome} 文件夹")
                 os.makedirs(merge_input_path_genome)
 
@@ -500,7 +500,7 @@ class GetChrSortFragments:
             "base_path": os.path.join(self.fragments_path, f"{file}_chromosome")
         }
 
-    def genome_transformation(self, chr_file_dict: dict, file: str):
+    def genome_transformation(self, chr_file_dict: dict, file: str, genome: str):
         chr_name: list = chr_file_dict["name"]
         chr_name.sort(key=lambda elem: self.chr_list[elem])
         base_path: str = chr_file_dict["base_path"]
@@ -514,9 +514,11 @@ class GetChrSortFragments:
             is_merge = False
             os.makedirs(genome_output)
 
-        if not is_merge:
-            # 执行信息
-            Hg19ToHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
+        if genome == self.genome_generate and self.lift_over_path:
+            # 进行转化为 hg19 或 hg38
+            if not is_merge:
+                # 执行信息
+                Hg19ToHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
 
         for chr_ in chr_name:
             genome_file: str = os.path.join(genome_output, f"{file}_{chr_}.tsv")
@@ -544,7 +546,7 @@ class GetChrSortFragments:
         chr_file_content.to_csv(position_file, sep="\t", encoding="utf-8", header=False, index=False)
         self.log.info(f"To file {chr_} Sort completed")
 
-    def sort_position_files(self, chr_file_dict: dict, file: str):
+    def sort_position_files(self, chr_file_dict: dict, file: str, genome: str):
         chr_name: list = chr_file_dict["name"]
         file_dict_path: dict = chr_file_dict["path"]
         position_f_path: dict = {}
@@ -553,7 +555,7 @@ class GetChrSortFragments:
         # Determine whether to merge directly
         is_merge: bool = True
         # output file
-        position: str = os.path.join(self.fragments_path, f"{file}_position", self.genome_source)
+        position: str = os.path.join(self.fragments_path, f"{file}_position", genome)
         if not os.path.exists(position):
             self.log.info(f"create folder {position}")
             is_merge = False
@@ -568,7 +570,7 @@ class GetChrSortFragments:
                 }.items()))
                 sort_position_files_core_param_list.append((position, file_dict_path, chr_, file))
             # 实例化线程对象
-            pool: ThreadPool = Pool(10)
+            pool: ThreadPool = Pool(5)
             # Form fragments file
             pool.map(self.sort_position_files_core, sort_position_files_core_param_list)
             pool.close()
@@ -589,22 +591,26 @@ class GetChrSortFragments:
         # 排序
         chr_name.sort(key=lambda elem: self.chr_list[elem])
         self.log.info(f"Start merging file {chr_name}")
-        # 生成文件
-        with open(output_file, "w", encoding="utf-8", newline="\n", buffering=1) as w:
-            for chr_ in chr_name:
-                self.log.info(f"Start adding {file_dict_path[chr_]} file")
-                with open(file_dict_path[chr_], "r", encoding="utf-8") as r:
-                    while True:
-                        line: str = r.readline().strip()
-                        if not line:
-                            break
-                        w.write(f"{line}\n")
-                self.log.info(f"Completed adding {chr_} file")
 
-    def after_two_step(self, file: str, chr_file_dict: dict, fragments_file: str):
+        if not os.path.exists(output_file):
+            # 生成文件
+            with open(output_file, "w", encoding="utf-8", newline="\n", buffering=1) as w:
+                for chr_ in chr_name:
+                    self.log.info(f"Start adding {file_dict_path[chr_]} file")
+                    with open(file_dict_path[chr_], "r", encoding="utf-8") as r:
+                        while True:
+                            line: str = r.readline().strip()
+                            if not line:
+                                break
+                            w.write(f"{line}\n")
+                    self.log.info(f"Completed adding {chr_} file")
+        else:
+            self.log.warn(f"{output_file}. The file already exists, it has been processed by default")
+
+    def after_two_step(self, file: str, chr_file_dict: dict, fragments_file: str, genome: str):
         # 对位点进行排序
         self.log.info(f"Start sorting {file} grouped files")
-        position_file_dict: dict = self.sort_position_files(chr_file_dict, file)
+        position_file_dict: dict = self.sort_position_files(chr_file_dict, file, genome)
         self.log.info(f"Sorted file information {position_file_dict}")
         self.log.info(f"Sorting {file} group files completed")
         # 合并文件
@@ -624,12 +630,8 @@ class GetChrSortFragments:
         self.log.info(f"File information after grouping {chr_file_dict}")
         self.log.info(f"Complete file grouping of {file} according to chromatin information")
 
-        if genome == self.genome_source:
-            self.after_two_step(file, chr_file_dict, chr_sort_fragments_file)
-        elif genome == self.genome_generate and self.lift_over_path:
-            # 进行转化为 hg19 或 hg38
-            genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file)
-            self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file)
+        genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file, genome)
+        self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file, genome)
 
     def exec_sort_fragments(self) -> None:
         files_dict: dict = self.get_files()
@@ -643,7 +645,7 @@ class GetChrSortFragments:
 
             # 创建文件夹
             merge_input_path_genome = os.path.join(self.merge_input_path, genome)
-            if not merge_input_path_genome:
+            if not os.path.exists(merge_input_path_genome):
                 self.log.info(f"创建 {merge_input_path_genome} 文件夹")
                 os.makedirs(merge_input_path_genome)
 
