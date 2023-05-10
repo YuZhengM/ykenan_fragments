@@ -17,18 +17,18 @@ from ykenan_fragments.get_fragments import GetFragments
 
 class GetSortFragments(GetFragments):
 
-    def __init__(self, path: str, merge_path: str, gsm: str, get_fragments_path: str, lift_over_path: str, is_hg19_to_hg38: bool = True):
+    def __init__(self, source_path: str, merge_path: str, gsm: str, handler_path: str, lift_over_path: str, is_hg19_to_hg38: bool = True):
         """
         Form a fragments
-        :param path: Path to store unordered fragments files
+        :param source_path: Path to store unordered fragments files
         :param merge_path: Path to generate fragments files
         :param gsm: GSE number (here is a folder name)
-        :param get_fragments_path: base_path parameter in GetFragments class
+        :param handler_path: base_path parameter in GetFragments class
         :param is_hg19_to_hg38: 是否为 hg19 文件
         """
-        super().__init__(get_fragments_path, path, gsm)
-        self.base_path: str = os.path.join(path, gsm)
-        self.fragments_path: str = os.path.join(self.base_path, "fragments")
+        super().__init__(source_path, handler_path, gsm)
+        self.handler_path: str = os.path.join(handler_path, gsm)
+        self.fragments_path: str = os.path.join(self.handler_path, "fragments")
         self.merge_input_path: str = merge_path
         self.lift_over_path: str = lift_over_path
         self.is_hg19_to_hg38: bool = is_hg19_to_hg38

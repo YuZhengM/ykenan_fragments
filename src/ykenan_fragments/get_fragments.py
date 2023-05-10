@@ -52,9 +52,9 @@ class GetFragments:
                 if file.endswith(endswith):
                     gz_files.append(file)
                     before = file.split(endswith)[0]
-                    if gz_files_before.count(before) == 0:
+                    if before not in gz_files_before:
                         gz_files_before.append(before)
-                        gz_files_and_before.update({file: before})
+                    gz_files_and_before.update({file: before})
                     break
         # Void judgment
         if len(gz_files) == 0:
@@ -245,12 +245,8 @@ class GetFragments:
             raise ValueError("Insufficient file read length")
 
         # 转成字典
-        barcodes_dict: dict = {}
-        for barcodes_i in range(barcodes_len):
-            barcodes_dict.update({barcodes_i, barcodes[barcodes_i]})
-        peaks_dict: dict = {}
-        for peak_i in range(peaks_len):
-            peaks_dict.update({peak_i, peaks[peak_i]})
+        barcodes_dict: dict = dict(zip(list(range(barcodes_len)), barcodes))
+        peaks_dict: dict = dict(zip(list(range(peaks_len)), peaks))
 
         self.log.info(f"Quantity or Path {self.barcodes_key}: {barcodes_len}, {self.mtx_key}: {mtx_path}, {self.peaks_key}: {peaks_len}")
         # Read quantity
