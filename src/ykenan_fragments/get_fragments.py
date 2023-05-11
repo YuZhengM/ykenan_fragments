@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 import os
-import shutil
 from multiprocessing.pool import ThreadPool
 
 from ykenan_log import Logger
@@ -75,17 +74,17 @@ class GetFragments:
                 if os.path.exists(gz_file_before_dir):
                     continue
                 self.log.info(f"create folder {gz_file_before_dir}")
-                os.mkdir(gz_file_before_dir)
+                self.file.makedirs(gz_file_before_dir)
 
             # move file
             for gz_file in gz_files:
                 file_source = os.path.join(self.base_path, gz_file)
                 file_target = gz_file_before_dirs[gz_files_and_before[gz_file]]
-                self.log.info(f"move file {file_source} to {file_target}")
-                shutil.move(file_source, file_target)
+                # 复制文件
+                self.file.copy_file(file_source, file_target)
 
         # Get folder information
-        self.log.info(f"Starting to obtain information for processing ==========> ")
+        self.log.info(f"Starting to obtain information for processing ==========> {self.base_path} path")
         dirs_dict: dict = self.file.entry_dirs_dict(self.base_path)
         dirs_name = dirs_dict["name"]
 
@@ -128,7 +127,7 @@ class GetFragments:
 
     def get_files(self, path: str) -> dict:
         # Obtain all file information under this path
-        contents_dict: dict = self.file.entry_contents_dict(path, 1)
+        contents_dict: dict = self.file.entry_files_dict(path)
         filenames: list = contents_dict["name"]
         barcodes_file: dict = {}
         mtx_file: dict = {}
@@ -163,8 +162,7 @@ class GetFragments:
             self.peaks_key: peaks_file
         }
 
-    @staticmethod
-    def get_file_content(path: str, file: dict):
+    def get_file_content(self, path: str, file: dict):
         txt_file: str = os.path.join(path, file["name"].split(".txt")[0]) + ".txt"
         # Determine if the file exists
         if txt_file.endswith(".mtx.gz.txt"):
@@ -175,23 +173,8 @@ class GetFragments:
                         w.write(f.read())
             return txt_file
         else:
-            if os.path.exists(txt_file):
-                f = gzip.open(file["path"], 'rb')
-                # Obtaining Content Information
-                file_content: list = f.read().decode().rstrip().split("\n")
-                f.close()
-                return file_content
-            else:
-                w = open(txt_file, 'wb')
-                f = gzip.open(file["path"], 'rb')
-                read = f.read()
-                # Form a file
-                w.write(read)
-                # Obtaining Content Information
-                file_content: list = read.decode().rstrip().split("\n")
-                f.close()
-                w.close()
-                return file_content
+            # 解压文件得到内容
+            return self.file.unzip_gz(file["path"], generate_file=txt_file)
 
     def fragments_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_fragments}"
@@ -301,14 +284,6 @@ class GetFragments:
         self.log.info(f"Complete the formation of {mtx_path} fragments file")
         self.log.info(f"Complete processing of {key} related files (folders)")
 
-    def copy_file(self, source_file: str, target_file: str) -> None:
-        if os.path.exists(target_file):
-            self.log.warn(f"{target_file} The file already exists, it has been copied by default")
-        else:
-            self.log.info(f"Start copying file {source_file}")
-            shutil.copy(source_file, target_file)
-            self.log.info(f"End of copying file  {source_file}")
-
     def cp_files(self, param: tuple) -> None:
         path: str = param[0]
         key: str = param[1]
@@ -321,9 +296,6 @@ class GetFragments:
             raise ValueError(f"file does not exist: {fragments_file}")
         # Two folders
         fragments_cp_dir = os.path.join(self.cp_path, "fragments")
-        if not os.path.exists(fragments_cp_dir):
-            self.log.info(f"create folder {fragments_cp_dir}")
-            os.makedirs(fragments_cp_dir)
         # copy
         fragments_gz_file = os.path.join(fragments_cp_dir, f"{fragments_file_name}.gz")
         if os.path.exists(fragments_gz_file):
@@ -331,7 +303,7 @@ class GetFragments:
         elif os.path.exists(os.path.join(fragments_cp_dir, fragments_file_name)):
             self.log.warn(f"The file has been copy into {fragments_gz_file}, Default copy completed")
         else:
-            self.copy_file(fragments_file, os.path.join(fragments_cp_dir, fragments_file_name))
+            self.file.copy_file(fragments_file, os.path.join(fragments_cp_dir, fragments_file_name))
         self.log.info(f"Copy file to specified path for {key} completed")
 
     def exec_fragments(self):
@@ -350,6 +322,10 @@ class GetFragments:
         # Form fragments file
         pool.map(self.write_fragments, write_fragments_param_list)
         pool.close()
+
+        # create folders
+        fragments_cp_dir = os.path.join(self.cp_path, "fragments")
+        self.file.makedirs(fragments_cp_dir)
 
         # All information
         all_infor = source_files["all"]

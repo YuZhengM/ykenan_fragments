@@ -59,18 +59,15 @@ class GetSortFragments(GetFragments):
         files_dict_name = files_dict["name"]
         self.log.info(f"tsv file information: {files_dict_name}")
         need_handler_fragments_result: dict = {}
-        if not os.path.exists(self.merge_input_path):
-            self.log.info(f"create folder {self.merge_input_path}")
-            os.makedirs(self.merge_input_path)
+        # 创建输出文件夹
+        self.file.makedirs(self.merge_input_path)
 
         # Add processing files
         for genome in self.genomes:
 
             # 创建文件夹
             merge_input_path_genome = os.path.join(self.merge_input_path, genome)
-            if not os.path.exists(merge_input_path_genome):
-                self.log.info(f"创建 {merge_input_path_genome} 文件夹")
-                os.makedirs(merge_input_path_genome)
+            self.file.makedirs(merge_input_path_genome)
 
             need_handler_fragments: list = []
             need_handler_fragments_path: dict = {}
@@ -286,12 +283,8 @@ class GetSortFragments(GetFragments):
                 continue
             files_name: list = files_dict[genome]["name"]
             files_path: dict = files_dict[genome]["path"]
-
             # 创建文件夹
             merge_input_path_genome = os.path.join(self.merge_input_path, genome)
-            if not os.path.exists(merge_input_path_genome):
-                self.log.info(f"create {merge_input_path_genome} 文件夹")
-                os.makedirs(merge_input_path_genome)
 
             param_list: list = []
             for file in files_name:

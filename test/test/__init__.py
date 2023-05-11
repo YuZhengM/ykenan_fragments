@@ -33,7 +33,7 @@ class Fragments(GetSortFragments):
         peak_info: str = re.sub("\"", "", peak_split[1])
         peak_split_after: list = peak_info.split("-")
         peak_split_before = str(peak_split_after[0]).split(":")
-        return f"{peak_split_before[0]}\t{peak_split_before[1]}\t{peak_split_after[2]}"
+        return f"{peak_split_before[0]}\t{peak_split_before[1]}\t{peak_split_after[1]}"
 
     @staticmethod
     def get_barcodes(dict_: dict, index_: str) -> str:
@@ -45,4 +45,4 @@ if __name__ == '__main__':
     """
     https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE181251
     """
-    Run(path="F:/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", finish_gse=["GSE129785"], callback=Fragments)
+    Run(path="/mnt/f/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", finish_gse=["GSE129785"], callback=Fragments)

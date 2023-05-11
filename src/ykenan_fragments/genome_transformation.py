@@ -58,12 +58,9 @@ class Hg19AndHg38:
             self.log.error(f"输入文件夹 {self.source} 不存在")
             raise ValueError(f"输入文件夹 {self.source} 不存在")
 
-        if not os.path.exists(self.output):
-            self.log.info(f"创建 {self.output} 文件夹")
-            os.makedirs(self.output)
-        if not os.path.exists(self.unmap):
-            self.log.info(f"创建 {self.unmap} 文件夹")
-            os.makedirs(self.unmap)
+        # 创建文件夹
+        self.file.makedirs(self.output)
+        self.file.makedirs(self.unmap)
 
         # 获取没有执行的文件
         input_files = self.file.get_files(path=self.source)
