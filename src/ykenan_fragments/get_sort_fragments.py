@@ -94,14 +94,14 @@ class GetSortFragments(GetFragments):
         chr_f_dict: dict = {}
         chr_f_path: dict = {}
         # Determine whether to merge directly
-        is_merge: bool = True
+        is_exec: bool = True
         # Create a folder to store chromatin
         chromosome_path: str = os.path.join(self.fragments_path, f"{file}_chromosome", self.genome_source)
         if not os.path.exists(chromosome_path):
             self.log.info(f"create folder {chromosome_path}")
             os.makedirs(chromosome_path)
-            is_merge = False
-        if not is_merge:
+            is_exec = False
+        if not is_exec:
             with open(path, "r", encoding="utf-8") as r:
                 while True:
                     line: str = r.readline().strip()
@@ -147,29 +147,24 @@ class GetSortFragments(GetFragments):
             "base_path": os.path.join(self.fragments_path, f"{file}_chromosome")
         }
 
-    def genome_transformation(self, chr_file_dict: dict, file: str, genome: str):
+    def genome_transformation(self, chr_file_dict: dict, genome: str):
         chr_name: list = chr_file_dict["name"]
-        chr_name.sort(key=lambda elem: self.chr_list[elem])
+        # chr_name.sort(key=lambda elem: self.chr_list[elem])
+        chr_name.sort()
         base_path: str = chr_file_dict["base_path"]
         genome_f_path: dict = {}
-        # Determine whether to merge directly
-        is_merge: bool = True
         # output file
         genome_output: str = os.path.join(base_path, self.genome_generate)
-        if not os.path.exists(genome_output):
-            self.log.info(f"create folder {genome_output}")
-            is_merge = False
-            os.makedirs(genome_output)
 
         if genome == self.genome_generate and self.lift_over_path:
-            # 进行转化为 hg19 或 hg38
-            if not is_merge:
-                # 执行信息
-                Hg19AndHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
+            # 执行信息
+            Hg19AndHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
 
-        for chr_ in chr_name:
-            genome_file: str = os.path.join(genome_output, f"{file}_{chr_}.tsv")
-            genome_f_path.update({chr_: genome_file})
+        files_dict: dict = self.file.entry_files_dict(genome_output)
+        files_name = self.file.entry_files_dict(genome_output)
+        for filename in files_name:
+            chr_: str = "chr" + filename.split("_chr")[1].split(".")[0]
+            genome_f_path.update({chr_: files_dict[filename]})
         return {
             self.genome_source: chr_file_dict,
             self.genome_generate: {
@@ -196,7 +191,8 @@ class GetSortFragments(GetFragments):
         file_dict_path: dict = chr_file_dict["path"]
         position_f_path: dict = {}
         # sort
-        chr_name.sort(key=lambda elem: self.chr_list[elem])
+        # chr_name.sort(key=lambda elem: self.chr_list[elem])
+        chr_name.sort()
         # Determine whether to merge directly
         is_merge: bool = True
         # output file
@@ -230,7 +226,8 @@ class GetSortFragments(GetFragments):
         chr_name: list = chr_file_dict["name"]
         file_dict_path: dict = chr_file_dict["path"]
         # 排序
-        chr_name.sort(key=lambda elem: self.chr_list[elem])
+        # chr_name.sort(key=lambda elem: self.chr_list[elem])
+        chr_name.sort()
         self.log.info(f"Start merging file {chr_name}")
 
         if not os.path.exists(output_file):
@@ -271,7 +268,7 @@ class GetSortFragments(GetFragments):
         self.log.info(f"File information after grouping {chr_file_dict}")
         self.log.info(f"Complete file grouping of {file} according to chromatin information")
 
-        genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, file, genome)
+        genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, genome)
         self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file, genome)
 
     def exec_sort_fragments(self) -> None:
