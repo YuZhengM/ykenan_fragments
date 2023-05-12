@@ -161,14 +161,16 @@ class GetSortFragments(GetFragments):
             Hg19AndHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
 
         files_dict: dict = self.file.entry_files_dict(genome_output)
-        files_name = self.file.entry_files_dict(genome_output)
+        files_name = files_dict["name"]
+        genome_chr_name: list = []
         for filename in files_name:
             chr_: str = "chr" + filename.split("_chr")[1].split(".")[0]
+            genome_chr_name.append(chr_)
             genome_f_path.update({chr_: files_dict[filename]})
         return {
             self.genome_source: chr_file_dict,
             self.genome_generate: {
-                "name": chr_name,
+                "name": genome_chr_name,
                 "path": genome_f_path
             }
         }
