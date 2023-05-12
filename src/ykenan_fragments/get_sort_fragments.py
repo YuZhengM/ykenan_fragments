@@ -156,7 +156,7 @@ class GetSortFragments(GetFragments):
         # output file
         genome_output: str = os.path.join(base_path, self.genome_generate)
 
-        if genome == self.genome_generate and self.lift_over_path:
+        if genome == self.genome_source and self.lift_over_path:
             # 执行信息
             Hg19AndHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
 

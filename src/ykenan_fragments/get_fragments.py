@@ -77,10 +77,14 @@ class GetFragments:
                 self.log.info(f"create folder {gz_file_before_dir}")
                 self.file.makedirs(gz_file_before_dir)
 
-            # move file
+            # copy file
             for gz_file in gz_files:
                 file_source = os.path.join(self.base_path, gz_file)
                 file_target = gz_file_before_dirs[gz_files_and_before[gz_file]]
+                # 结果文件已有跳过
+                if os.path.exists(self.fragments_file_name(file_target)):
+                    self.log.warn(f"{self.fragments_file_name(file_target)} file generates. {file_source} defaults copied.")
+                    continue
                 # 复制文件
                 self.file.copy_file(file_source, file_target)
 
