@@ -12,7 +12,7 @@ from multiprocessing.dummy import Pool
 
 class GetFragments:
 
-    def __init__(self, base_path: str, cp_path: str, gsm: str, thread_count: int = 10):
+    def __init__(self, base_path: str, cp_path: str, barcodes_path: str, gsm: str, thread_count: int = 10):
         """
         Form an unordered fragments
         :param base_path: Path to store three files
@@ -26,6 +26,7 @@ class GetFragments:
         self.GSE: str = gsm
         self.base_path: str = os.path.join(base_path, gsm)
         # The path to copy the fragments file to
+        self.barcodes_path: str = barcodes_path
         self.cp_path: str = os.path.join(cp_path, gsm)
         # keyword
         self.barcodes_key: str = "barcodes"
@@ -162,8 +163,12 @@ class GetFragments:
             self.peaks_key: peaks_file
         }
 
+    @staticmethod
+    def get_file_content_path(path: str, file: dict):
+        return os.path.join(path, file["name"].split(".txt")[0]) + ".txt"
+
     def get_file_content(self, path: str, file: dict):
-        txt_file: str = os.path.join(path, file["name"].split(".txt")[0]) + ".txt"
+        txt_file: str = self.get_file_content_path(path, file)
         # Determine if the file exists
         if txt_file.endswith(".mtx.gz.txt"):
             if not os.path.exists(txt_file):
@@ -181,31 +186,27 @@ class GetFragments:
 
     @staticmethod
     def judge_mtx_is_true(one_len: str, two_len: str, peaks_len: int, barcodes_len: int) -> int:
-        if int(one_len) != peaks_len and int(two_len) != barcodes_len:
-            return 0
-        elif int(one_len) != barcodes_len and int(two_len) != peaks_len:
+        # 此处现象认为没有表头情况
+        if int(one_len) == peaks_len and int(two_len) == barcodes_len:
             return 1
+        elif int(one_len) == barcodes_len and int(two_len) == peaks_len:
+            return 2
+        # 此处现象认为有表头情况
+        elif int(one_len) + 1 == peaks_len and int(two_len) + 1 == barcodes_len:
+            return 3
+        elif int(one_len) + 1 == barcodes_len and int(two_len) + 1 == peaks_len:
+            return 4
         else:
             return -1
 
     @staticmethod
-    def get_peaks(dict_: dict, index_: int) -> str:
-        peak: str = dict_[index_]
-        peak_split = peak.split("_")
+    def get_peaks(line: str) -> str:
+        peak_split = line.split("_")
         return f"{peak_split[0]}\t{peak_split[1]}\t{peak_split[2]}"
 
     @staticmethod
-    def get_barcodes(dict_: dict, index_: int) -> str:
-        barcode: str = dict_[index_]
-        return barcode.split("\t")[6]
-
-    @staticmethod
-    def get_input_peaks(dict_: dict, index_: int) -> str:
-        return dict_[index_]
-
-    @staticmethod
-    def get_input_barcodes(dict_: dict, index_: int) -> str:
-        return dict_[index_]
+    def get_barcodes(line: str) -> str:
+        return line.split("\t")[6]
 
     def write_fragments(self, param: list) -> None:
         """
@@ -220,6 +221,10 @@ class GetFragments:
         # Get Barcodes
         self.log.info(f"Getting {self.barcodes_key} file information")
         barcodes: list = self.get_file_content(path, files[self.barcodes_key])
+
+        # 复制 barcodes 文件
+        self.file.copy_file(self.get_file_content_path(path, files[self.barcodes_key]), self.barcodes_path)
+
         self.log.info(f"Getting {self.mtx_key} file path")
         mtx_path: str = self.get_file_content(path, files[self.mtx_key])
         self.log.info(f"Getting {self.peaks_key} file information")
@@ -265,8 +270,21 @@ class GetFragments:
                     if mtx_count >= 500000 and mtx_count % 500000 == 0:
                         self.log.info(f"Processed {mtx_count} lines, completed {round(mtx_count / mtx_all_number, 4) * 100} %")
                     split: list = line.split(" ")
-                    split_peak_index: int = int(split[0]) if is_peaks_barcodes == 0 else int(split[1])
-                    split_barcode_index: int = int(split[1]) if is_peaks_barcodes == 0 else int(split[0])
+                    split_peak_index: int = 0
+                    split_barcode_index: int = 0
+                    # 判断情况
+                    if is_peaks_barcodes == 1:
+                        split_peak_index: int = int(split[0])
+                        split_barcode_index: int = int(split[1])
+                    elif is_peaks_barcodes == 2:
+                        split_peak_index: int = int(split[0]) - 1
+                        split_barcode_index: int = int(split[1]) - 1
+                    elif is_peaks_barcodes == 3:
+                        split_peak_index: int = int(split[1])
+                        split_barcode_index: int = int(split[0])
+                    elif is_peaks_barcodes == 4:
+                        split_peak_index: int = int(split[1]) - 1
+                        split_barcode_index: int = int(split[0]) - 1
                     # To determine the removal of a length of not 3
                     if len(split) != 3:
                         mtx_count += 1
@@ -278,15 +296,15 @@ class GetFragments:
                         mtx_count += 1
                         continue
                     # peak, barcode, There is a header+1, but the index starts from 0 and the record starts from 1
-                    peak_info: str = self.get_peaks(peaks_dict, split_peak_index)
-                    barcode_info: str = self.get_barcodes(barcodes_dict, split_barcode_index)
+                    peak_info: str = self.get_peaks(peaks_dict[split_peak_index])
+                    barcode_info: str = self.get_barcodes(barcodes_dict[split_barcode_index])
                     # Adding information, it was found that some files in mtx contain two columns, less than three columns. This line was ignored and recorded in the log
                     try:
                         w.write(f"{peak_info}\t{barcode_info}\t{split[2]}\n")
                     except Exception as e:
                         error_count += 1
-                        self.log.error(f"peak information: {self.get_input_peaks(peaks_dict, split_peak_index)}")
-                        self.log.error(f"barcodes information: {self.get_input_barcodes(barcodes_dict, split_barcode_index)}")
+                        self.log.error(f"peak information: {peaks_dict[split_peak_index]}")
+                        self.log.error(f"barcodes information: {barcodes_dict[split_barcode_index]}")
                         self.log.error(f"mtx information ===> content: {split}, line number: {mtx_count}")
                         self.log.error(f"Write error: {e}")
                     mtx_count += 1

@@ -17,7 +17,7 @@ from ykenan_fragments.get_fragments import GetFragments
 
 class GetSortFragments(GetFragments):
 
-    def __init__(self, source_path: str, merge_path: str, gsm: str, handler_path: str, lift_over_path: str, is_hg19_to_hg38: bool = True):
+    def __init__(self, source_path: str, merge_path: str, barcodes_path: str, gsm: str, handler_path: str, lift_over_path: str, is_hg19_to_hg38: bool = True, thread_count: int = 10):
         """
         Form a fragments
         :param source_path: Path to store unordered fragments files
@@ -26,7 +26,7 @@ class GetSortFragments(GetFragments):
         :param handler_path: base_path parameter in GetFragments class
         :param is_hg19_to_hg38: 是否为 hg19 文件
         """
-        super().__init__(source_path, handler_path, gsm)
+        super().__init__(source_path, handler_path, barcodes_path, gsm, thread_count=thread_count)
         self.handler_path: str = os.path.join(handler_path, gsm)
         self.fragments_path: str = os.path.join(self.handler_path, "fragments")
         self.merge_input_path: str = merge_path
