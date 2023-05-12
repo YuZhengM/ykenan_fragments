@@ -14,7 +14,6 @@ class Run:
     def __init__(self, path: str, lift_over_path: str = None, finish_gse: list = None, is_hg19_to_hg38: bool = True, thread_count: int = 10, callback=GetSortFragments):
         self.handler_path: str = os.path.join(path, "handler")
         self.source_path: str = os.path.join(path, "source")
-        self.barcodes_path: str = os.path.join(path, "barcodes")
         self.log = Logger("Run", "log/fragments.log")
         self.file = yf.StaticMethod(log_file="log")
         self.lift_over_path: str = lift_over_path
@@ -43,7 +42,7 @@ class Run:
             # 创建文件夹
             archr_path = os.path.join(self.handler_path, gsm, "ArchR")
             self.file.makedirs(archr_path)
-            barcodes_path = os.path.join(self.barcodes_path, gsm, "barcodes")
+            barcodes_path = os.path.join(self.handler_path, gsm, "barcodes")
             self.file.makedirs(barcodes_path)
 
             self.log.info(f"开始执行 {gsm} 内容信息")
