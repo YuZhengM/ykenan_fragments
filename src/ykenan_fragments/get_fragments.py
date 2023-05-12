@@ -184,17 +184,20 @@ class GetFragments:
     def fragments_file_name(self, key: str) -> str:
         return f"{key}{self.suffix_fragments}"
 
-    @staticmethod
-    def judge_mtx_is_true(one_len: str, two_len: str, peaks_len: int, barcodes_len: int) -> int:
+    def judge_mtx_is_true(self, one_len: str, two_len: str, peaks_len: int, barcodes_len: int) -> int:
         # 此处现象认为没有表头情况
         if int(one_len) == peaks_len and int(two_len) == barcodes_len:
+            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
             return 1
         elif int(one_len) == barcodes_len and int(two_len) == peaks_len:
+            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
             return 2
         # 此处现象认为有表头情况
         elif int(one_len) + 1 == peaks_len and int(two_len) + 1 == barcodes_len:
+            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
             return 3
         elif int(one_len) + 1 == barcodes_len and int(two_len) + 1 == peaks_len:
+            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
             return 4
         else:
             return -1
@@ -253,8 +256,11 @@ class GetFragments:
         with open(fragments_file, "w", encoding="utf-8", buffering=1, newline="\n") as w:
             with open(mtx_path, "r", encoding="utf-8") as r:
                 line: str = r.readline().strip()
-                if line.startswith("%"):
-                    self.log.info(f"Annotation Information: {line}")
+                while True:
+                    if line.startswith("%"):
+                        self.log.info(f"Annotation Information: {line}")
+                    else:
+                        break
                 line: str = r.readline().strip()
                 split: list = line.split(" ")
                 if len(split) == 3 and line:
