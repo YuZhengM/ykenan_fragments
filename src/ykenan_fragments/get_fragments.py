@@ -277,11 +277,11 @@ class GetFragments:
                         split_peak_index: int = int(split[0])
                         split_barcode_index: int = int(split[1])
                     elif is_peaks_barcodes == 2:
-                        split_peak_index: int = int(split[0]) - 1
-                        split_barcode_index: int = int(split[1]) - 1
-                    elif is_peaks_barcodes == 3:
                         split_peak_index: int = int(split[1])
                         split_barcode_index: int = int(split[0])
+                    elif is_peaks_barcodes == 3:
+                        split_peak_index: int = int(split[0]) - 1
+                        split_barcode_index: int = int(split[1]) - 1
                     elif is_peaks_barcodes == 4:
                         split_peak_index: int = int(split[1]) - 1
                         split_barcode_index: int = int(split[0]) - 1

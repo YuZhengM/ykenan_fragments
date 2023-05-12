@@ -41,15 +41,16 @@ class Run:
                 continue
 
             # 创建文件夹
-            self.file.makedirs(self.barcodes_path)
             archr_path = os.path.join(self.handler_path, gsm, "ArchR")
             self.file.makedirs(archr_path)
+            barcodes_path = os.path.join(self.barcodes_path, gsm, "barcodes")
+            self.file.makedirs(barcodes_path)
 
             self.log.info(f"开始执行 {gsm} 内容信息")
             fragment = self.callback(
                 source_path=self.source_path,
                 merge_path=archr_path,
-                barcodes_path=self.barcodes_path,
+                barcodes_path=barcodes_path,
                 gsm=gsm,
                 handler_path=self.handler_path,
                 lift_over_path=self.lift_over_path,
