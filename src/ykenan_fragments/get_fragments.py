@@ -187,17 +187,17 @@ class GetFragments:
     def judge_mtx_is_true(self, one_len: str, two_len: str, peaks_len: int, barcodes_len: int) -> int:
         # 此处现象认为没有表头情况
         if int(one_len) == peaks_len and int(two_len) == barcodes_len:
-            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
+            self.log.info(f"{self.peaks_key} 和 {self.barcodes_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
             return 1
         elif int(one_len) == barcodes_len and int(two_len) == peaks_len:
-            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
+            self.log.info(f"{self.peaks_key} 和 {self.barcodes_key} 文件无表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
             return 2
         # 此处现象认为有表头情况
         elif int(one_len) + 1 == peaks_len and int(two_len) + 1 == barcodes_len:
-            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
+            self.log.info(f"{self.peaks_key} 和 {self.barcodes_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.peaks_key} 文件中行索引信息, 第二列代表 {self.barcodes_key} 文件中行索引信息")
             return 3
         elif int(one_len) + 1 == barcodes_len and int(two_len) + 1 == peaks_len:
-            self.log.info(f"{self.peaks_key} 和 {self.peaks_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
+            self.log.info(f"{self.peaks_key} 和 {self.barcodes_key} 文件有表头, {self.mtx_key} 文件中第一列代表 {self.barcodes_key} 文件中行索引信息, 第二列代表 {self.peaks_key} 文件中行索引信息")
             return 4
         else:
             return -1
@@ -259,9 +259,9 @@ class GetFragments:
                 while True:
                     if line.startswith("%"):
                         self.log.info(f"Annotation Information: {line}")
+                        line: str = r.readline().strip()
                     else:
                         break
-                line: str = r.readline().strip()
                 split: list = line.split(" ")
                 if len(split) == 3 and line:
                     self.log.info(f"Remove Statistical Rows: {line}")
@@ -280,17 +280,17 @@ class GetFragments:
                     split_barcode_index: int = 0
                     # 判断情况
                     if is_peaks_barcodes == 1:
-                        split_peak_index: int = int(split[0])
-                        split_barcode_index: int = int(split[1])
-                    elif is_peaks_barcodes == 2:
-                        split_peak_index: int = int(split[1])
-                        split_barcode_index: int = int(split[0])
-                    elif is_peaks_barcodes == 3:
                         split_peak_index: int = int(split[0]) - 1
                         split_barcode_index: int = int(split[1]) - 1
-                    elif is_peaks_barcodes == 4:
+                    elif is_peaks_barcodes == 2:
                         split_peak_index: int = int(split[1]) - 1
                         split_barcode_index: int = int(split[0]) - 1
+                    elif is_peaks_barcodes == 3:
+                        split_peak_index: int = int(split[0])
+                        split_barcode_index: int = int(split[1])
+                    elif is_peaks_barcodes == 4:
+                        split_peak_index: int = int(split[1])
+                        split_barcode_index: int = int(split[0])
                     # To determine the removal of a length of not 3
                     if len(split) != 3:
                         mtx_count += 1
