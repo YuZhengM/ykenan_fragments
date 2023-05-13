@@ -160,20 +160,25 @@ class GetSortFragments(GetFragments):
             # 执行信息
             Hg19AndHg38(path=base_path, lift_over_path=self.lift_over_path, is_hg19_to_hg38=self.is_hg19_to_hg38)
 
-        files_dict: dict = self.file.entry_files_dict(genome_output)
-        files_name = files_dict["name"]
-        genome_chr_name: list = []
-        for filename in files_name:
-            chr_: str = "chr" + filename.split("_chr")[1].split(".")[0]
-            genome_chr_name.append(chr_)
-            genome_f_path.update({chr_: files_dict[filename]})
-        return {
-            self.genome_source: chr_file_dict,
-            self.genome_generate: {
-                "name": genome_chr_name,
-                "path": genome_f_path
-            }
+        # 返回结果信息
+        genomes_dict: dict = {
+            self.genome_source: chr_file_dict
         }
+        if genome == self.genome_generate:
+            genome_chr_name: list = []
+            files_dict: dict = self.file.entry_files_dict(genome_output)
+            files_name = files_dict["name"]
+            for filename in files_name:
+                chr_: str = "chr" + filename.split("_chr")[1].split(".")[0]
+                genome_chr_name.append(chr_)
+                genome_f_path.update({chr_: files_dict[filename]})
+            genomes_dict.update({
+                self.genome_generate: {
+                    "name": genome_chr_name,
+                    "path": genome_f_path
+                }
+            })
+        return genomes_dict
 
     def sort_position_files_core(self, param: tuple):
         position: str = param[0]
@@ -271,6 +276,7 @@ class GetSortFragments(GetFragments):
         self.log.info(f"Complete file grouping of {file} according to chromatin information")
 
         genome_transformation_dict: dict = self.genome_transformation(chr_file_dict, genome)
+        self.log.info(f"参考基因组 (转换) 信息: {genome_transformation_dict}")
         self.after_two_step(file, genome_transformation_dict[genome], chr_sort_fragments_file, genome)
 
     def exec_sort_fragments(self) -> None:
@@ -278,7 +284,9 @@ class GetSortFragments(GetFragments):
         for genome in self.genomes:
 
             # 判断是否继续
-            if not self.lift_over_path and genome == self.genome_generate:
+            is_continue = not self.lift_over_path and genome == self.genome_generate
+            self.log.info(f"是否继续执行: {self.lift_over_path} {genome}  {self.genome_generate} ===>  {is_continue}")
+            if is_continue:
                 continue
             files_name: list = files_dict[genome]["name"]
             files_path: dict = files_dict[genome]["path"]
