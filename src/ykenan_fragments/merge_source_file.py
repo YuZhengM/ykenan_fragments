@@ -81,8 +81,8 @@ class MergeSourceFile:
         # 获取数量信息
         line_0: str = ''
         line_1: str = ''
-        barcodes_number = 0
-        peak_number = 0
+        line_0_number = 0
+        line_1_number = 0
         mtx_number = 0
         for file_ in files:
             with gzip.open(file_, 'rb') as f:
@@ -90,8 +90,8 @@ class MergeSourceFile:
                 line_1 = f.readline().decode().rstrip()
                 line: str = f.readline().decode().rstrip()
                 split = line.split(" ")
-                barcodes_number += int(split[0])
-                peak_number += int(split[1])
+                line_0_number += int(split[0])
+                line_1_number += int(split[1])
                 mtx_number += int(split[2])
 
         line_number = 0
@@ -99,9 +99,9 @@ class MergeSourceFile:
         with gzip.open(self.get_merge_path()[self.mtx_key], 'wb') as w:
             w.write(f"{line_0}\n".encode())
             w.write(f"{line_1}\n".encode())
-            w.write(f"{str(barcodes_number)} {str(peak_number)} {str(mtx_number)}\n".encode())
-            record_barcodes_number = 0
-            record_peak_number = 0
+            w.write(f"{str(line_0_number)} {str(line_1_number)} {str(mtx_number)}\n".encode())
+            record_line_0_number = 0
+            record_line_1_number = 0
             for file_ in files:
                 self.log.info(f"开始处理 {file_} 文件")
                 with gzip.open(file_, 'rb') as f:
@@ -116,12 +116,12 @@ class MergeSourceFile:
                         if line_number >= 350000 and line_number % 350000 == 0:
                             self.log.info(f"已处理 {line_number} 行, 完成 {line_number / mtx_number * 100} %")
                         split: list = line.split(" ")
-                        number_0 = str(int(split[0]) + record_barcodes_number)
-                        number_1 = str(int(split[1]) + record_peak_number)
+                        number_0 = str(int(split[0]) + record_line_0_number)
+                        number_1 = str(int(split[1]) + record_line_1_number)
                         line = str(number_0 + " " + number_1 + " " + split[2])
                         # 解压文件
                         w.write(f"{line}\n".encode())
                         line_number += 1
 
-                record_barcodes_number += int(number_info[0])
-                record_peak_number += int(number_info[1])
+                record_line_0_number += int(number_info[0])
+                record_line_1_number += int(number_info[1])
