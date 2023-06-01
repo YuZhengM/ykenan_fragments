@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import os
 
 from ykenan_fragments import Run
 from ykenan_fragments.get_sort_fragments import GetSortFragments
+from ykenan_fragments.merge_source_file import MergeSourceFile
 
 """
 ykenan_fragments:
@@ -31,8 +33,21 @@ class Fragments(GetSortFragments):
         return line
 
 
+class MergeFile(MergeSourceFile):
+
+    def __init__(self, base_path: str, merge_path: str):
+        super().__init__(base_path, merge_path)
+        self.peaks_key: str = "peaks"
+        # Extract files and remove suffix information
+        self.endswith_list: list = ["_barcodes.tsv.gz", "_matrix.mtx.gz", "_peaks.bed.gz"]
+
+
 if __name__ == '__main__':
     """
     https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE181251
     """
-    Run(path="F:/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", callback=Fragments)
+    # Run(path="F:/software/scATAC_data/data", lift_over_path="/mnt/f/software/liftOver", callback=Fragments)
+    file = MergeFile(r"I:\data\source\GSE168373", r"I:\data\source\GSE168373_all")
+    file.format_barcodes_file()
+    file.format_peak_file()
+    file.format_mtx_file()
